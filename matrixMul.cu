@@ -84,6 +84,9 @@ int MatrixMultiply(int argc, char **argv,
     float *h_C = reinterpret_cast<float *>(malloc(mem_size_C));
     float *h_C_test = reinterpret_cast<float *>(malloc(mem_size_C));
 
+    for (int i = 0; i < static_cast<int>(dimsC.x * dimsC.y); i++) {
+        h_C_test[i]=0;
+    }
 
     if (h_C == NULL) {
         fprintf(stderr, "Failed to allocate host matrix C!\n");
@@ -146,17 +149,12 @@ int MatrixMultiply(int argc, char **argv,
 
     // Compute and print the performance
     float msecPerMatrixMul = msecTotal;
-    double flopsPerMatrixMul = 2.0 * static_cast<double>(dimsA.x) *
-                               static_cast<double>(dimsA.y) *
-                               static_cast<double>(dimsB.x);
-    double gigaFlops = (flopsPerMatrixMul * 1.0e-9f) /
-                       (msecPerMatrixMul / 1000.0f);
+
+
     printf(
-        "Performance= %.2f GFlop/s, Time= %.3f msec, Size= %.0f Ops," \
+        "Time= %.3f msec," \
         " WorkgroupSize= %u threads/block\n",
-        gigaFlops,
         msecPerMatrixMul,
-        flopsPerMatrixMul,
         threads.x * threads.y);
 
     // Copy result from device to host
@@ -170,7 +168,7 @@ int MatrixMultiply(int argc, char **argv,
         for(int j = 0; j < dimsA.y; ++j)
             for(int k = 0; k < dimsA.x; ++k)
             {
-                h_C_test[i + j * dimsA.x] += h_A[i + j * dimsA.x + k] * h_B[k + j * dimsA.x +j];
+                h_C_test[j + i * dimsA.x] += h_A[i * dimsA.x + k] * h_B[k* dimsA.x +j];
             }
 
     // test relative error by the formula
