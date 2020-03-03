@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <assert.h>
+#include <iostream>
+#include <chrono>
 
 // CUDA runtime
 #include <cuda_runtime.h>
@@ -56,10 +58,10 @@ void GPU_fill_rand(float *A, int nr_rows_A, int nr_cols_A) {
      // Create a pseudo-random number generator
      curandGenerator_t prng;
      curandCreateGenerator(&prng, CURAND_RNG_PSEUDO_DEFAULT);
-
+ 
      // Set the seed for the random number generator using the system clock
      curandSetPseudoRandomGeneratorSeed(prng, (unsigned long long) clock());
-
+ 
      // Fill the array with random numbers on the device
      curandGenerateUniform(prng, A, nr_rows_A * nr_cols_A);
  }
@@ -102,7 +104,7 @@ int MatrixMultiply(int argc, char **argv,
 
     GPU_fill_rand(d_A, dimsA.x, dimsA.y);
     GPU_fill_rand(d_B, dimsB.x, dimsB.y);
-
+    
     // Only for tests purposes
     cudaMemcpy(h_A,d_A, mem_size_A,cudaMemcpyDeviceToHost);
     cudaMemcpy(h_B,d_B, mem_size_A,cudaMemcpyDeviceToHost);
@@ -126,7 +128,7 @@ int MatrixMultiply(int argc, char **argv,
     // Record the start event
     cudaEventRecord(start, NULL);
 
-
+    
     if (block_size == 16) {
         MatrixMulCUDA<16> <<< grid, threads >>>(d_C, d_A, d_B,
                                                     dimsA.x, dimsB.x);
@@ -134,7 +136,7 @@ int MatrixMultiply(int argc, char **argv,
         MatrixMulCUDA<32> <<< grid, threads >>>(d_C, d_A, d_B,
                                                     dimsA.x, dimsB.x);
     }
-
+    
 
     // Record the stop event
     cudaEventRecord(stop, NULL);
@@ -149,8 +151,8 @@ int MatrixMultiply(int argc, char **argv,
 
     // Compute and print the performance
     float msecPerMatrixMul = msecTotal;
-
-
+    
+    
     printf(
         "Time= %.3f msec," \
         " WorkgroupSize= %u threads/block\n",
@@ -160,16 +162,23 @@ int MatrixMultiply(int argc, char **argv,
     // Copy result from device to host
     cudaMemcpy(h_C, d_C, mem_size_C, cudaMemcpyDeviceToHost);
 
-    printf("Checking computed result for correctness: ");
     bool correct = true;
 
 
+    auto t1 = std::chrono::high_resolution_clock::now();
     for(int i = 0; i < dimsA.x; ++i)
         for(int j = 0; j < dimsA.y; ++j)
             for(int k = 0; k < dimsA.x; ++k)
             {
                 h_C_test[j + i * dimsA.x] += h_A[i * dimsA.x + k] * h_B[k* dimsA.x +j];
             }
+
+    auto t2 = std::chrono::high_resolution_clock::now();
+
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count();
+    std::cout <<  duration;
+
+    printf("Checking computed result for correctness: ");
 
     // test relative error by the formula
     //     |<x, y>_cpu - <x,y>_gpu|/<|x|, |y|>  < eps
@@ -211,8 +220,8 @@ int main(int argc, char **argv) {
 
     int block_size = 32;
 
-    dim3 dimsA(10 * block_size, 10 * block_size, 1);
-    dim3 dimsB(10 * block_size, 10 * block_size, 1);
+    dim3 dimsA(50 * block_size, 50 * block_size, 1);
+    dim3 dimsB(50 * block_size, 50 * block_size, 1);
 
 
     printf("MatrixA(%d,%d), MatrixB(%d,%d)\n", dimsA.x, dimsA.y,
@@ -222,3 +231,5 @@ int main(int argc, char **argv) {
 
     exit(matrix_result);
 }
+
+
