@@ -129,13 +129,10 @@ int MatrixMultiply(int argc, char **argv,
     cudaEventRecord(start, NULL);
 
     
-    if (block_size == 16) {
-        MatrixMulCUDA<16> <<< grid, threads >>>(d_C, d_A, d_B,
+    
+    MatrixMulCUDA<32> <<< grid, threads >>>(d_C, d_A, d_B,
                                                     dimsA.x, dimsB.x);
-    } else {
-        MatrixMulCUDA<32> <<< grid, threads >>>(d_C, d_A, d_B,
-                                                    dimsA.x, dimsB.x);
-    }
+    
     
 
     // Record the stop event
